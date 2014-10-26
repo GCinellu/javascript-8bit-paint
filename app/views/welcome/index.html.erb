@@ -1,0 +1,230 @@
+<div class='container'>
+<h1>Sonic Paint!</h1>
+<hr>
+  <div class='row'>
+    <div class='col-lg-3'>
+      <div class="checkbox">
+        <label>
+          <input type="checkbox" id='hide-grid'> Show Grid
+        </label>
+      </div>
+      <div class='input-group selected-color'>
+        <input type='text' id='pencil-color' class='form-control' value='ffffff'>
+        <span class='input-group-addon'><i></i></span>
+      </div>
+      <div class='btn-group'>
+        <button id='add-to-palette' class='btn btn-success'>Aggiungi</button>
+      </div>
+      <div id='palette-list'>
+        <% @colors.each do |color| %>
+          <div class='row' style='margin: 8px auto;'>
+            <div class='col-lg-3'>
+              <div id='color-<%= color.value %>' class='color-preview' style='height: 32px; background-color: <%= color.value %>' ></div>
+                <input type='hidden' value='<%= color.value %>'>
+              </div>
+            <div class='col-lg-9'>
+              <div class='input-group'>
+                <button class='set-color btn btn-default'>Set <%= color.value %></button>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    <div class='col-lg-6'>
+      <div id='canvas'>
+        <% if @painting %>
+          <div style='width:500px'>
+          <%= raw @painting.canvas %>
+        </div>
+        <% end %>
+      </div>
+    </div>
+    <div class='col-lg-3'>
+      <button id='save-canvas' class='btn btn-default'>Save Canvas</button>
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    var canvas  = $('#canvas'),
+        pencil  = $('#pencil-color').val(),
+        pixel   = $('.one-pixel'),
+        palette = $('#palette-list'),
+        setColors;
+
+
+    function onePixel(index, side) {
+      return "<div class='one-pixel' id='pixel-" + index  + "' style='width: " + side + "px; height: " + side  +  "px; float: left'></div>";
+    }
+
+
+    function validate(data) {
+      if (data === undefined || data === NaN) {
+        return console.error('Element not valid');
+      }
+    }
+
+
+    function populateCanvas(side) {
+      var i, pixelSide;
+
+      side = parseInt(side);
+      validate(side);
+
+      pixelSide = (side / 32);
+
+      canvas.css('width', side);
+      canvas.css('height', side);
+
+      for (i = 1; i <= 1024; i++) {
+        canvas.append(onePixel(i, pixelSide));
+      }
+    }
+
+    function dyePixel(pix, color) {
+      return $('#'+ pix).css('background-color', color);
+    }
+
+    function stripColor(color) {
+      if (color.match(/\#|\s#/) != null) {
+        color.replace('#', '');
+      }
+      return color;
+    }
+
+    function addPreview(color) {
+      $('#color-' + color + '.color-preview')
+          .css('background-color', color)
+          .css('height', '32px')
+          .css('border', '1px solid #000000')
+          .css('border-radius', '5px');
+    }
+
+    function setColor(color) {
+      setColors = $('.color-preview').each(function() {
+        var self = $(this),
+            color = self.siblings('input').val();
+
+        self.on('click', function() {
+            $('#pencil-color').val(color);
+          });
+      });
+      return setColors;
+    }
+    function saveColor(color) {
+      $.ajax({
+        url: '<%= palette_colors_path(@palette) %>',
+        type: 'post',
+        data: {colors: {value: color}}
+      });
+    }
+
+    function addToPalette(color) {
+
+      palette.append("<div class='row' style='margin: 8px auto;'> \
+                        <div class='col-lg-3'> \
+                          <div id='color-" + stripColor(color) + "' class='color-preview'></div> \
+                          <input type='hidden' value='" + color + "'> \
+                        </div> \
+                        <div class='col-lg-9'> \
+                          <div class='input-group'> \
+                            <button class='set-color btn btn-default'>Set " + color + "</button> \
+                          </div> \
+                        </div> \
+                      </div>"
+        );
+
+
+      addPreview(color);
+      setColor(color);
+      saveColor(color);
+
+      return setColors;
+    }
+
+    function toggleGrid(checkbox) {
+      var pixel = $('.one-pixel');
+
+      if (checkbox.prop('checked')) {
+        pixel.css('border', '1px solid rgba(184, 184, 184, 0.7)');
+      } else {
+        pixel.css('border', 'none');
+      }
+    }
+
+    function xml2string(node) {
+      if (typeof(XMLSerializer) !== 'undefined') {
+        var serializer = new XMLSerializer();
+        return serializer.serializeToString(node);
+      } else if (node.xml) {
+        return node.xml;
+      }
+    }
+
+    function canvasToRaw() {
+      var pixels = $('.one-pixel'),
+          pixArr = pixels.toArray(),
+          raw    = [],
+          toString, i;
+
+      for(i = 0; i < pixArr.length; i++) {
+        toString = xml2string(pixArr[i]);
+        raw.push(toString);
+      }
+
+      raw = raw.join('');
+      return raw;
+    }
+
+    function savePainting(label, raw) {
+      $.ajax({
+        url:'<%= paintings_path %>',
+        type: 'POST',
+        data: { paintings: { label: label, canvas: raw }},
+        success: function() {
+          console.log('created');
+        }
+      });
+    }
+
+    // Actions
+    <% unless @painting %>
+        populateCanvas(500);
+    <% end %>
+
+    $('.one-pixel').on('click',function(e) {
+        e.preventDefault();
+        var selfId = $(this)[0]['id'],
+            color  = $("#pencil-color").val();
+
+        dyePixel(selfId, color);
+      });
+
+    $('#add-to-palette').on('click', function(e) {
+        e.preventDefault();
+        addToPalette($("#pencil-color").val());
+      });
+
+    $('div.selected-color').colorpicker();
+
+    $('#hide-grid').on('change',function() {
+        toggleGrid($(this));
+      });
+    $('#hide-grid').click();
+
+    $('.color-preview').each(function() {
+        var self = $(this),
+            color = self.children('input').val();
+
+        addPreview(color);
+        setColor(color);
+      });
+
+    $("#save-canvas").on('click', function() {
+          var raw = canvasToRaw();
+          savePainting('mario', raw);
+        });
+});
+</script>
