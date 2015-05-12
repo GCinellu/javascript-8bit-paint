@@ -1,28 +1,38 @@
 == README
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+The idea born having a look at how 16-bit characters are designed. Simple blocks of different colors gives the illusion of shapes, shadows, and light.
 
-Things you may want to cover:
+I hence started creating a jquery grid of 32x32 squared divs, each of these attached to an event triggered on click.
 
-* Ruby version
+In this case, the div changes its background color depending on the value provided by a color picker.
+It's also possible to add a palette in order to prepare all the colors necessary for making the character.
 
-* System dependencies
+With rails, the project can be saved and seen later.
 
-* Configuration
+However, while installing rails I messed up a bit the js, which will require some fix.
 
-* Database creation
+Also, I will need to install a proper template, but in the end it was just for fun.
+I created the jquery in one night, and the porting on Rails was made in a few hours.
 
-* Database initialization
+In order to launch the project, after cloning it run:
 
-* How to run the test suite
+  - bundle install
+  
+in order to fetch all the necessary gems, and run your app with
 
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
-
-
-Please feel free to use a different markup language if you do not plan to run
-<tt>rake doc:app</tt>.
+  - bundle exec rake db:reset && bundle exec unicorn
+  
+  this will reset the db and install the seed user, for which the credentials are:
+  
+    - Email: info@paint.it
+    - Passw: password
+    
+  Once you're inside, you'll be able to select the colors from the form and to save your palette.
+  
+  There are two bugs at the moment:
+  
+    1) Palette preview are not loaded with js, page need to be refreshed to make it appear
+    2) Color picker functioning but require to be fixed
+    
+    
+  I hope you enjoy this simple repo and to find the time to improve it
